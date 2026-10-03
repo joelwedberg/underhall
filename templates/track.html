@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block mainclass %}external-page{% endblock %}
+{% block title %}Ärende #{{ report.id }}{% endblock %}
+{% block content %}
+<div class="narrow">
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <h1>Ärende #{{ report.id }}</h1>
+        <p>{{ report.property.name }} · {{ report.location_label }}</p>
+      </div>
+      <span class="status status-{{ report.status }}">{{ report.status_label }}</span>
+    </div>
+
+    <div class="detail-block">
+      <h2>{{ report.summary }}</h2>
+      {% if report.details %}<p>{{ report.details }}</p>{% endif %}
+    </div>
+
+    <div class="facts">
+      <div><span>Registrerad</span><strong>{{ report.created_at.astimezone().strftime('%Y-%m-%d %H:%M') }}</strong></div>
+      <div><span>Status</span><strong>{{ report.status_label }}</strong></div>
+      <div><span>Ansvarig</span><strong>{{ report.assignee.name if report.assignee else 'Inte tilldelad ännu' }}</strong></div>
+    </div>
+  </section>
+</div>
+{% endblock %}

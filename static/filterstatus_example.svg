@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480">
+<rect width="900" height="480" rx="18" fill="#101318"/>
+<rect x="80" y="70" width="740" height="330" rx="14" fill="#222731" stroke="#4a5664" stroke-width="4"/>
+<rect x="145" y="125" width="230" height="220" rx="8" fill="#181c22" stroke="#718092" stroke-width="4"/>
+<rect x="525" y="125" width="230" height="220" rx="8" fill="#181c22" stroke="#718092" stroke-width="4"/>
+<path d="M390 235 H505" stroke="#3f8d65" stroke-width="10" stroke-linecap="round"/>
+<path d="M475 205 L510 235 L475 265" fill="none" stroke="#3f8d65" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="260" cy="235" r="55" fill="#295c89"/>
+<path d="M230 235h60M260 205v60" stroke="#e7f2ff" stroke-width="10" stroke-linecap="round"/>
+<text x="260" y="380" text-anchor="middle" fill="#d7dee7" font-family="Arial,sans-serif" font-size="24">Filter / filterindikering</text>
+<text x="640" y="380" text-anchor="middle" fill="#d7dee7" font-family="Arial,sans-serif" font-size="24">Display / tryckfall</text>
+<text x="450" y="45" text-anchor="middle" fill="#9ca7b4" font-family="Arial,sans-serif" font-size="20">EXEMPELBILD – ersätts med riktig anläggningsbild i mallen</text>
+</svg>

@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Arbetssida{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div>
+    <h1>Arbetssida</h1>
+    <p>Gör jobbet, dokumentera det viktiga och gå vidare.</p>
+  </div>
+  <div class="quick-links">
+    <a class="btn" href="{{ url_for('external_report') }}">+ Ny felanmälan</a>
+    <a class="btn" href="{{ url_for('dashboard') }}">Central dashboard</a>
+  </div>
+</div>
+
+<div class="tabbar">
+  <a class="{% if tab=='mine' %}active{% endif %}" href="{{ url_for('work', tab='mine') }}">Mitt</a>
+  <a class="{% if tab=='reports' %}active{% endif %}" href="{{ url_for('work', tab='reports') }}">Felanmälan</a>
+  <a class="{% if tab=='fu' %}active{% endif %}" href="{{ url_for('work', tab='fu') }}">FU</a>
+  <a class="{% if tab=='eg' %}active{% endif %}" href="{{ url_for('work', tab='eg') }}">Egenkontroll</a>
+</div>
+
+{% if reports %}
+<section class="panel">
+  <div class="section-head">
+    <div><h2>Felanmälningar</h2><p>Så lite administration som möjligt.</p></div>
+    <span class="count">{{ reports|length }}</span>
+  </div>
+
+  <div class="work-list">
+  {% for r in reports %}
+    <article class="work-card">
+      <div class="work-main">
+        <div class="card-top">
+          <span class="eyebrow">#{{ r.id }} · {{ r.property.name }} · {{ r.location_label }}</span>
+          <span class="status status-{{ r.status }}">{{ r.status_label }}</span>
+        </div>
+        <h3>{{ r.summary }}</h3>
+        {% if r.details %}<p>{{ r.details }}</p>{% endif %}
+        {% if r.image_filename %}
+          <a class="attachment" href="{{ url_for('uploaded_file', filename=r.image_filename) }}" target="_blank">📷 Visa bifogad bild</a>
+        {% endif %}
+        <p class="muted">Anmäld {{ r.created_at.astimezone().strftime('%Y-%m-%d %H:%M') }} · {{ r.reporter_email }}</p>
+      </div>
+
+      <div class="work-actions">
+        <form method="post" action="{{ url_for('work_assign_report', report_id=r.id) }}" class="stack-mini">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="user_id" required>
+            <option value="">Tilldela...</option>
+            {% for u in techs %}
+            <option value="{{ u.id }}" {% if r.assignee_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn">Tilldela</button>
+        </form>
+
+        {% if r.assignee_id != current_user.id %}
+        <form method="post" action="{{ url_for('claim_report', report_id=r.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary">Ta ärendet själv</button>
+        </form>
+        {% endif %}
+
+        {% if current_user.role == 'admin' or r.assignee_id in (None, current_user.id) %}
+        <form method="post" action="{{ url_for('resolve_report', report_id=r.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-success">Markera klar</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if tasks %}
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h2>FU & egenkontroller</h2>
+      <p>Kryssa det du gjort. "Slutför" sparar samtidigt alla kryss och kommentarer.</p>
+    </div>
+    <span class="count">{{ tasks|length }}</span>
+  </div>
+
+  {% for t in tasks %}
+  <article class="task-card {% if t.is_overdue and t.template.priority == 1 %}card-danger{% endif %}"
+           data-task-card="{{ t.id }}">
+    <div class="task-head">
+      <div>
+        <div class="card-top">
+          <span class="badge {% if t.template.kind == 'FU' %}badge-green{% else %}badge-blue{% endif %}">{{ t.template.kind }}</span>
+          <span class="priority priority-{{ t.template.priority }}">{{ t.template.priority_label }}</span>
+          <span class="badge">{{ t.template.category }}</span>
+        </div>
+        <h2>{{ t.template.name }}</h2>
+        <p>{{ t.template.property.name }} · {{ t.template.place.name }}</p>
+      </div>
+      <div class="task-meta">
+        <span>{% if t.is_overdue %}<strong class="danger-text">Försenad</strong>{% else %}Förfaller {{ t.due_at.astimezone().strftime('%Y-%m-%d') }}{% endif %}</span>
+        <span class="task-counter">{{ t.checked_count }}/{{ t.total_count }} kontrollerade</span>
+        <a class="btn btn-detail" href="{{ url_for('task_detail', task_id=t.id) }}">Ta fram arbetsordern</a>
+      </div>
+    </div>
+
+    <div class="progress progress-large"><span style="width:{{ t.progress_percent }}%"></span></div>
+
+    <form method="post" action="{{ url_for('assign_task', task_id=t.id) }}" class="assign-row task-assign">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Ansvarig</label>
+      <select name="user_id" required>
+        <option value="">Välj...</option>
+        {% for u in techs %}
+        <option value="{{ u.id }}" {% if t.assigned_to_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn">Spara ansvarig</button>
+    </form>
+
+    <form method="post" action="{{ url_for('save_task', task_id=t.id) }}" class="task-bulk-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="task-items">
+        {% for item in t.items %}
+        {% set spec = t.template_item_for(item.sort_order) %}
+        <div class="task-item {% if item.checked_at %}item-done{% endif %}
+                    {% if spec and spec.is_numeric and item.numeric_value is not none and spec.value_in_range(item.numeric_value) == false %}item-out-of-range{% endif %}">
+          {% if spec and spec.is_numeric %}
+          <div class="measurement-control">
+            <div class="measurement-title">
+              <strong>{{ loop.index }}. {{ item.label }}</strong>
+              <span class="measurement-range">Godkänt: {{ spec.range_label }}</span>
+            </div>
+            <div class="measurement-input-wrap">
+              <input class="measurement-input task-measurement" type="number" step="any"
+                     name="value_{{ item.id }}"
+                     value="{{ item.numeric_value if item.numeric_value is not none else '' }}"
+                     placeholder="Värde">
+              {% if spec.value_unit %}<span>{{ spec.value_unit }}</span>{% endif %}
+            </div>
+            <small>Värde utanför intervallet sparas men skapar automatiskt en felanmälan.</small>
+          </div>
+          {% else %}
+          <label class="checkline">
+            <input class="task-check" type="checkbox" name="checked_{{ item.id }}" value="1" {% if item.checked_at %}checked{% endif %}>
+            <span>
+              <strong>{{ loop.index }}. {{ item.label }}</strong>
+              {% if item.checked_at %}
+              <small>Senast sparad av {{ item.checked_by.name if item.checked_by else 'okänd' }}</small>
+              {% endif %}
+            </span>
+          </label>
+          {% endif %}
+
+          <input class="item-comment" type="text" name="comment_{{ item.id }}"
+                 value="{{ item.comment or '' }}" placeholder="Kommentar på delmomentet...">
+
+          <div class="item-actions">
+            <label class="fault-toggle">
+              <input type="checkbox" name="create_fault_{{ item.id }}" value="1">
+              Skapa felanmälan av avvikelse
+            </label>
+            <select name="fault_assignee_{{ item.id }}">
+              <option value="">Ej tilldelad</option>
+              {% for u in techs %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="task-savebar">
+        <div class="save-hint">Du behöver inte spara varje rad separat.</div>
+        <div class="save-actions">
+          <button class="btn" type="submit" name="action" value="save">Spara framsteg</button>
+          <button class="btn btn-success btn-big" type="submit" name="action" value="complete">Slutför {{ t.template.kind }}</button>
+        </div>
+      </div>
+    </form>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if not reports and not tasks %}
+<section class="panel empty-big">
+  <h2>Inget att visa här just nu</h2>
+  <p class="muted">Välj en annan flik eller njut av lugnet.</p>
+</section>
+{% endif %}
+
+<script>
+document.querySelectorAll('[data-task-card]').forEach(card => {
+  const checks = [...card.querySelectorAll('.task-check')];
+  const measurements = [...card.querySelectorAll('.task-measurement')];
+  const counter = card.querySelector('.task-counter');
+  const bar = card.querySelector('.progress span');
+  const total = checks.length + measurements.length;
+
+  function updateProgress(){
+    const checked =
+      checks.filter(c => c.checked).length +
+      measurements.filter(i => i.value.trim() !== '').length;
+    if(counter) counter.textContent = `${checked}/${total} kontrollerade`;
+    if(bar) bar.style.width = total ? `${(checked/total)*100}%` : '0%';
+  }
+
+  checks.forEach(c => {
+    c.addEventListener('change', () => {
+      c.closest('.task-item')?.classList.toggle('item-done', c.checked);
+      updateProgress();
+    });
+  });
+  measurements.forEach(i => i.addEventListener('input', updateProgress));
+});
+</script>
+{% endblock %}

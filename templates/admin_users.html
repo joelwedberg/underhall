@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Användare{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div><h1>Användare</h1><p>Admin skapar konto – användaren sätter själv lösenord och telefon.</p></div>
+</div>
+
+<div class="two-col">
+  <section class="panel">
+    <h2>Lägg till användare</h2>
+    <form method="post" action="{{ url_for('invite_user') }}" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Namn<input name="name" required></label>
+      <label>Jobb-e-post<input type="email" name="email" required></label>
+      <label>Roll
+        <select name="role">
+          <option value="technician">Tekniker</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+      <button class="btn btn-primary">Skapa och skicka aktiveringsmejl</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h2>Befintliga</h2><p>Aktiva och väntande konton.</p></div><span class="count">{{ users|length }}</span></div>
+    <div class="user-list">
+      {% for u in users %}
+      <div class="user-row">
+        <div>
+          <strong>{{ u.name }}</strong>
+          <span>{{ u.email }}</span>
+        </div>
+        <div class="user-row-meta">
+          <span class="badge">{{ u.role_label }}</span>
+          {% if u.is_active %}
+            <span class="badge badge-green">Aktiv</span>
+          {% else %}
+            <span class="badge badge-amber">Väntar aktivering</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

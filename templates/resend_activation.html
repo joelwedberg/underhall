@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Ny aktiveringslänk{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="panel auth-panel">
+    <h1>Ny aktiveringslänk</h1>
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>E-post<input type="email" name="email" required></label>
+      <button class="btn btn-primary">Skicka</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

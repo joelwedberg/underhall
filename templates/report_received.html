@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block mainclass %}external-page{% endblock %}
+{% block title %}Felanmälan mottagen{% endblock %}
+{% block content %}
+<div class="narrow">
+  <section class="panel success-panel">
+    <span class="big-icon">✓</span>
+    <h1>Felanmälan mottagen</h1>
+    <p class="lead">Ärende <strong>#{{ report.id }}</strong> är registrerat.</p>
+    <div class="mini-card">
+      <strong>{{ report.summary }}</strong><br>
+      <span class="muted">{{ report.property.name }} · {{ report.location_label }}</span>
+    </div>
+    <p>Vi har skickat en spårningslänk till <strong>{{ report.reporter_email }}</strong>.</p>
+    <a class="btn btn-primary" href="{{ track_url }}">Visa ärendet nu</a>
+    <a class="btn" href="{{ url_for('external_report') }}">Gör en ny felanmälan</a>
+  </section>
+</div>
+{% endblock %}

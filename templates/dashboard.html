@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}Central dashboard{% endblock %}
+{% block mainclass %}dashboard-page{% endblock %}
+{% block content %}
+
+{% macro task_card(t, techs) %}
+<article class="dash-card task-dashboard-card {% if t.is_overdue and t.template.priority == 1 %}card-danger{% endif %}"
+         data-dialog-id="task-dialog-{{ t.id }}" tabindex="0">
+  <div class="task-dashboard-top">
+    <div class="task-dashboard-type">
+      <span class="badge {% if t.template.kind == 'FU' %}badge-green{% else %}badge-blue{% endif %}">{{ t.template.kind }}</span>
+      <span class="badge">{{ t.template.category }}</span>
+    </div>
+    <span class="priority dashboard-priority priority-{{ t.template.priority }}">{{ t.template.priority_label }}</span>
+  </div>
+
+  <h3>{{ t.template.name }}</h3>
+  <p class="muted">{{ t.template.property.name }} · {{ t.template.place.name }}</p>
+
+  <div class="dashboard-owner">
+    <span>Ansvarig</span>
+    <strong>{{ t.assigned_to.name if t.assigned_to else 'Ej tilldelad' }}</strong>
+  </div>
+
+  <div class="due-row">
+    <strong>{% if t.is_overdue %}<span class="danger-text">Försenad</span>{% else %}{{ t.due_at.astimezone().strftime('%Y-%m-%d') }}{% endif %}</strong>
+    <span>{{ t.checked_count }}/{{ t.total_count }} moment</span>
+  </div>
+  <div class="progress"><span style="width:{{ t.progress_percent }}%"></span></div>
+  <div class="card-open-hint">Tryck för arbetsorder och tilldelning →</div>
+</article>
+
+<dialog class="report-dialog task-dialog" id="task-dialog-{{ t.id }}">
+  <div class="dialog-head">
+    <div>
+      <div class="task-popup-badges">
+        <span class="badge {% if t.template.kind == 'FU' %}badge-green{% else %}badge-blue{% endif %}">{{ t.template.kind }}</span>
+        <span class="priority popup-priority priority-{{ t.template.priority }}">{{ t.template.priority_label }}</span>
+        <span class="badge">{{ t.template.category }}</span>
+      </div>
+      <h2>{{ t.template.name }}</h2>
+      <p>{{ t.template.property.name }} · {{ t.template.place.name }}</p>
+    </div>
+    <button type="button" class="dialog-close" aria-label="Stäng">×</button>
+  </div>
+
+  <div class="task-popup-layout">
+    <div class="task-popup-main">
+      <div class="facts facts-dialog">
+        <div><span>Förfallo</span><strong>{{ t.due_at.astimezone().strftime('%Y-%m-%d') }}</strong></div>
+        <div><span>Framsteg</span><strong>{{ t.checked_count }}/{{ t.total_count }}</strong></div>
+        <div><span>Ansvarig</span><strong>{{ t.assigned_to.name if t.assigned_to else 'Ej tilldelad' }}</strong></div>
+      </div>
+
+      <div class="dashboard-task-items">
+        {% for item in t.items %}
+          {% set spec = t.template_item_for(item.sort_order) %}
+          <div class="dashboard-task-item {% if item.checked_at %}dashboard-task-done{% endif %}">
+            <div class="dashboard-task-item-title">
+              <span>{{ loop.index }}.</span>
+              <strong>{{ item.label }}</strong>
+              {% if item.checked_at %}<span class="badge badge-green">Klar</span>{% endif %}
+            </div>
+
+            {% if spec and spec.is_numeric %}
+              <div class="measurement-summary">
+                <span>Tillåtet: <strong>{{ spec.range_label }}</strong></span>
+                {% if item.numeric_value is not none %}
+                  <span class="{% if spec.value_in_range(item.numeric_value) == false %}measurement-bad{% endif %}">
+                    Senast: <strong>{{ item.numeric_value|round(2) }} {{ spec.value_unit or '' }}</strong>
+                  </span>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            {% if spec and spec.instructions %}
+              <p>{{ spec.instructions }}</p>
+            {% endif %}
+
+            {% if item.comment %}
+              <div class="dashboard-task-comment">{{ item.comment }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <aside class="task-popup-side">
+      <form method="post" action="{{ url_for('dashboard_assign_task', task_id=t.id) }}" class="popup-assign-card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h3>Tilldela {{ t.template.kind }}</h3>
+        <label>Ansvarig
+          <select name="user_id" required>
+            <option value="">Välj person...</option>
+            {% for u in techs %}
+            <option value="{{ u.id }}" {% if t.assigned_to_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="btn btn-primary btn-big">Tilldela</button>
+      </form>
+
+      <div class="popup-info-card">
+        <strong>Dashboardläge</strong>
+        <p>Här ser och fördelar vi jobbet. Utförande och avslut görs på den personliga arbetssidan.</p>
+      </div>
+    </aside>
+  </div>
+</dialog>
+{% endmacro %}
+
+<div class="dashboard-title">
+  <div>
+    <h1>Central dashboard</h1>
+    <p>Överblick för driftlaget · se, förstå och fördela arbetet.</p>
+  </div>
+  <div class="dashboard-clock" id="clock"></div>
+</div>
+
+{% if critical %}
+<section class="critical-strip">
+  <strong>⚠ {{ critical|length }} högprioriterad egenkontroll är försenad</strong>
+  <span>
+    {% for t in critical %}
+      {{ t.template.property.name }} · {{ t.template.name }}{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </span>
+</section>
+{% endif %}
+
+<div class="dashboard-grid">
+  <section class="panel dash-column">
+    <div class="section-head">
+      <div><h2>Senaste felanmälan</h2><p>Tryck på ett ärende för hela informationen</p></div>
+      <span class="count">{{ latest_reports|length }}</span>
+    </div>
+
+    {% for r in latest_reports %}
+    <article class="dash-card report-dashboard-card {% if r.is_recent %}recent-card{% endif %}"
+             data-dialog-id="report-dialog-{{ r.id }}" tabindex="0">
+      <div class="card-top">
+        <span class="eyebrow">#{{ r.id }} · {{ r.property.name }}</span>
+        <div class="card-badges">
+          {% if r.is_recent %}<span class="badge badge-recent">Nyligen inkommit</span>{% endif %}
+          <span class="status status-{{ r.status }}">{{ r.status_label }}</span>
+        </div>
+      </div>
+      <h3>{{ r.summary }}</h3>
+      <p class="muted">{{ r.location_label }} · {{ r.created_at.astimezone().strftime('%m-%d %H:%M') }}</p>
+      <div class="dashboard-owner">
+        <span>Ansvarig</span>
+        <strong>{{ r.assignee.name if r.assignee else 'Ej tilldelad' }}</strong>
+      </div>
+      <div class="card-open-hint">Tryck för detaljer →</div>
+    </article>
+
+    <dialog class="report-dialog" id="report-dialog-{{ r.id }}">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">Felanmälan #{{ r.id }}</span>
+          <h2>{{ r.summary }}</h2>
+          <p>{{ r.property.name }} · {{ r.location_label }}</p>
+        </div>
+        <button type="button" class="dialog-close" aria-label="Stäng">×</button>
+      </div>
+
+      <div class="dialog-content">
+        <div class="dialog-copy">
+          <div class="facts facts-dialog">
+            <div><span>Status</span><strong>{{ r.status_label }}</strong></div>
+            <div><span>Inkommen</span><strong>{{ r.created_at.astimezone().strftime('%Y-%m-%d %H:%M') }}</strong></div>
+            <div><span>Ansvarig</span><strong>{{ r.assignee.name if r.assignee else 'Ej tilldelad' }}</strong></div>
+          </div>
+
+          <section class="dialog-description">
+            <h3>Beskrivning</h3>
+            <p>{{ r.details if r.details else 'Ingen ytterligare beskrivning angavs.' }}</p>
+          </section>
+
+          <form method="post" action="{{ url_for('dashboard_assign', report_id=r.id) }}" class="dialog-assign">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Ge ärendet till
+              <select name="user_id" required>
+                <option value="">Välj person...</option>
+                {% for u in techs %}
+                <option value="{{ u.id }}" {% if r.assignee_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <button class="btn btn-primary btn-big">Tilldela</button>
+          </form>
+        </div>
+
+        <div class="dialog-media">
+          {% if r.image_filename %}
+            <img src="{{ url_for('dashboard_uploaded_file', filename=r.image_filename) }}" alt="Bild bifogad till felanmälan">
+          {% else %}
+            <div class="no-image">Ingen bild bifogad</div>
+          {% endif %}
+        </div>
+      </div>
+    </dialog>
+    {% else %}
+      <div class="empty">Inga öppna felanmälningar.</div>
+    {% endfor %}
+  </section>
+
+  <section class="panel dash-column">
+    <div class="section-head">
+      <div><h2>Kommande FU</h2><p>Förebyggande underhåll</p></div>
+      <span class="count">{{ fu|length }}</span>
+    </div>
+    {% for t in fu %}
+      {{ task_card(t, techs) }}
+    {% else %}
+      <div class="empty">Inget FU planerat.</div>
+    {% endfor %}
+  </section>
+
+  <section class="panel dash-column">
+    <div class="section-head">
+      <div><h2>Egenkontroller</h2><p>Högsta prioritet först</p></div>
+      <span class="count">{{ eg|length }}</span>
+    </div>
+    {% for t in eg %}
+      {{ task_card(t, techs) }}
+    {% else %}
+      <div class="empty">Inga egenkontroller planerade.</div>
+    {% endfor %}
+  </section>
+</div>
+
+<div class="dashboard-footer">
+  <span>Uppdateras automatiskt · nya fel markeras i 30 minuter</span>
+  <a href="{{ url_for('login') }}">Personlig inloggning →</a>
+</div>
+
+<script>
+const initialSignature = {{ dashboard_sig|tojson }};
+
+function tick(){
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleDateString('sv-SE') + ' · ' +
+    d.toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'});
+}
+tick();
+setInterval(tick, 30000);
+
+async function watchDashboard(){
+  try{
+    const response = await fetch('{{ url_for("dashboard_state") }}', {
+      cache: 'no-store',
+      headers: {'Accept':'application/json'}
+    });
+    if(!response.ok) return;
+    const state = await response.json();
+    if(state.signature !== initialSignature && !document.querySelector('dialog[open]')){
+      window.location.reload();
+    }
+  }catch(e){}
+}
+setInterval(watchDashboard, 5000);
+setInterval(() => {
+  if(!document.querySelector('dialog[open]')) window.location.reload();
+}, 60000);
+
+document.querySelectorAll('[data-dialog-id]').forEach(card => {
+  const open = () => {
+    const dialog = document.getElementById(card.dataset.dialogId);
+    if(dialog && !dialog.open) dialog.showModal();
+  };
+  card.addEventListener('click', open);
+  card.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
+  });
+});
+
+document.querySelectorAll('dialog').forEach(dialog => {
+  dialog.querySelector('.dialog-close')?.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', e => {
+    const rect = dialog.getBoundingClientRect();
+    const inside = e.clientX >= rect.left && e.clientX <= rect.right &&
+                   e.clientY >= rect.top && e.clientY <= rect.bottom;
+    if(!inside) dialog.close();
+  });
+});
+</script>
+{% endblock %}

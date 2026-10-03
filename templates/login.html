@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Logga in{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="panel auth-panel">
+    <h1>Personlig inloggning</h1>
+    <p>För tekniker och administratörer.</p>
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>E-post<input type="email" name="email" required></label>
+      <label>Lösenord<input type="password" name="password" required></label>
+      <button class="btn btn-primary btn-big">Logga in</button>
+    </form>
+    <div class="auth-links">
+      <a href="{{ url_for('forgot') }}">Glömt lösenord?</a>
+      <a href="{{ url_for('resend_activation') }}">Skicka ny aktiveringslänk</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

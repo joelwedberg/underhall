@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-underhall}
+      POSTGRES_USER: ${POSTGRES_USER:-underhall}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local}
+    volumes:
+      - underhall_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-underhall} -d ${POSTGRES_DB:-underhall}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_WEB_PORT:-8025}:8025"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-underhall}:${POSTGRES_PASSWORD:-change-me-local}@db:5432/${POSTGRES_DB:-underhall}
+      APP_SECRET: ${APP_SECRET:-replace-this-with-a-long-random-string}
+      BASE_URL: ${BASE_URL:-http://localhost:18090}
+      DASHBOARD_ACCESS_CODE: ${DASHBOARD_ACCESS_CODE:-246810}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_FROM: ${SMTP_FROM:-underhall@demo.local}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-8}
+    ports:
+      - "${APP_PORT:-18090}:8000"
+    volumes:
+      - underhall_uploads:/app/uploads
+
+volumes:
+  underhall_pg:
+  underhall_uploads:

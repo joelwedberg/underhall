@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Felanmälan · Driftunderhåll{% endblock %}
+{% block mainclass %}external-page{% endblock %}
+{% block content %}
+<section class="panel report-panel">
+  <div class="report-hero">
+    <span class="badge badge-green">Felanmälan</span>
+    <h1>Vad är fel?</h1>
+    <p>Beskriv det kort. Du behöver inte kunna våra objektnamn eller kategorier.</p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="form-grid report-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label class="span-2">
+      Fastighet
+      <select name="property_id" id="property" required>
+        <option value="">Välj fastighet</option>
+        {% for p in properties %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="span-2">
+      Plats i fastigheten
+      <select name="place_id" id="place">
+        <option value="">Välj om platsen finns...</option>
+        {% for place in places %}
+        <option value="{{ place.id }}" data-property="{{ place.property_id }}">{{ place.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div class="or-divider span-2"><span>eller</span></div>
+
+    <label class="span-2">
+      Skriv platsen själv
+      <input type="text" name="custom_place" maxlength="180"
+             placeholder="Ex. korridoren utanför omklädningsrum 3">
+      <small class="field-help">Om du skriver här används denna plats i stället för listan ovan.</small>
+    </label>
+
+    <label class="span-2">
+      Kort beskrivning
+      <input type="text" name="summary" maxlength="180"
+             placeholder="Ex. Kranen droppar hela tiden" required>
+    </label>
+
+    <label class="span-2">
+      Mer information <span class="muted">(valfritt)</span>
+      <textarea name="details" rows="4"
+                placeholder="Det som hjälper oss att hitta eller förstå felet."></textarea>
+    </label>
+
+    <label class="span-2">
+      Bild <span class="muted">(valfritt)</span>
+      <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
+             capture="environment">
+    </label>
+
+    <label class="span-2">
+      Din e-post
+      <input type="email" name="email" placeholder="namn@jobb.se" required>
+      <small class="field-help">Du får en länk där du kan följa just ditt ärende utan inloggning.</small>
+    </label>
+
+    <div class="span-2 form-actions">
+      <button class="btn btn-primary btn-big report-submit" type="submit">Skicka felanmälan</button>
+    </div>
+  </form>
+</section>
+
+<script>
+const property = document.getElementById('property');
+const place = document.getElementById('place');
+function filterPlaces() {
+  const pid = property.value;
+  [...place.options].forEach((o, i) => {
+    if (i === 0) return;
+    o.hidden = !!pid && o.dataset.property !== pid;
+  });
+  if (place.selectedOptions[0]?.hidden) place.value = '';
+}
+property.addEventListener('change', filterPlaces);
+filterPlaces();
+</script>
+{% endblock %}

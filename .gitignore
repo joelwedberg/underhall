@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+uploads/*
+!uploads/.gitkeep
+*.db
+*.sqlite*
+*.log
+*.zip
+backups/
+secrets/
+__pycache__/
+*.pyc
+*.key
+*.pem
+.jdps/

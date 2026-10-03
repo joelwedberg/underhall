@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ task.template.kind }} · {{ task.template.name }}{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div>
+    <div class="card-top task-detail-badges">
+      <span class="badge {% if task.template.kind == 'FU' %}badge-green{% else %}badge-blue{% endif %}">{{ task.template.kind }}</span>
+      <span class="priority priority-{{ task.template.priority }}">{{ task.template.priority_label }}</span>
+      <span class="badge">{{ task.template.category }}</span>
+    </div>
+    <h1>{{ task.template.name }}</h1>
+    <p>{{ task.template.property.name }} · {{ task.template.place.name }}</p>
+  </div>
+  <a class="btn btn-big" href="{{ url_for('work', tab=task.template.kind.lower()) }}">← Tillbaka till arbetssidan</a>
+</div>
+
+<div class="task-detail-layout">
+  <aside class="panel task-summary-panel">
+    <h2>Arbetsorder</h2>
+    <div class="facts facts-vertical">
+      <div><span>Typ</span><strong>{{ task.template.kind }}</strong></div>
+      <div><span>Prioritet</span><strong>{{ task.template.priority_label }}</strong></div>
+      <div><span>Förfallo</span><strong>{{ task.due_at.astimezone().strftime('%Y-%m-%d') }}</strong></div>
+      <div><span>Ansvarig</span><strong>{{ task.assigned_to.name if task.assigned_to else 'Ej tilldelad' }}</strong></div>
+      <div><span>Framsteg</span><strong>{{ task.checked_count }}/{{ task.total_count }}</strong></div>
+    </div>
+    <p class="muted detail-note">
+      Full arbetsorder: här finns instruktionerna och här kan jobbet också utföras.
+    </p>
+  </aside>
+
+  <section class="panel task-instruction-panel">
+    <div class="section-head">
+      <div>
+        <h2>Delmoment & instruktioner</h2>
+        <p>Bocka av eller ange mätvärde direkt i den här vyn.</p>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('save_task', task_id=task.id) }}" class="detail-work-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="instruction-list">
+        {% for item in task.items %}
+          {% set help = help_by_order.get(item.sort_order) %}
+          <article class="instruction-card {% if item.checked_at %}instruction-done{% endif %}
+                         {% if help and help.is_numeric and item.numeric_value is not none and help.value_in_range(item.numeric_value) == false %}instruction-error{% endif %}">
+            <div class="instruction-head">
+              <div>
+                <span class="instruction-number">{{ loop.index }}</span>
+                <h3>{{ item.label }}</h3>
+              </div>
+
+              {% if help and help.is_numeric %}
+                <span class="badge badge-measure">Mätvärde</span>
+              {% elif item.checked_at %}
+                <span class="badge badge-green">Kontrollerad</span>
+              {% else %}
+                <span class="badge">Ej kontrollerad</span>
+              {% endif %}
+            </div>
+
+            {% if help and help.instructions %}
+            <div class="instruction-text">{{ help.instructions }}</div>
+            {% else %}
+            <p class="muted">Ingen extra instruktion behövs för detta moment.</p>
+            {% endif %}
+
+            {% if help and (help.reference_url or help.help_image_url) %}
+            <div class="instruction-resources">
+              {% if help.help_image_url %}
+                <figure>
+                  <img src="{{ help.help_image_url }}" alt="Hjälpbild för {{ item.label }}">
+                  <figcaption>Hjälpbild / referensbild</figcaption>
+                </figure>
+              {% endif %}
+              {% if help.reference_url %}
+                <a class="btn" href="{{ help.reference_url }}" target="_blank" rel="noopener">Öppna manual / referens</a>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="detail-execution">
+              {% if help and help.is_numeric %}
+                <div class="detail-measurement">
+                  <div>
+                    <span class="measurement-label">Mätvärde</span>
+                    <strong>Godkänt intervall: {{ help.range_label }}</strong>
+                  </div>
+                  <div class="measurement-input-wrap measurement-input-large">
+                    <input type="number" step="any" name="value_{{ item.id }}"
+                           value="{{ item.numeric_value if item.numeric_value is not none else '' }}"
+                           placeholder="Ange värde">
+                    {% if help.value_unit %}<span>{{ help.value_unit }}</span>{% endif %}
+                  </div>
+                  <small>
+                    Ett värde utanför intervallet får registreras, men systemet skapar då automatiskt en felanmälan.
+                  </small>
+                </div>
+              {% else %}
+                <label class="detail-checkbox">
+                  <input type="checkbox" name="checked_{{ item.id }}" value="1" {% if item.checked_at %}checked{% endif %}>
+                  <span>Kontroll utförd</span>
+                </label>
+              {% endif %}
+
+              <label>
+                Kommentar
+                <input type="text" name="comment_{{ item.id }}"
+                       value="{{ item.comment or '' }}"
+                       placeholder="Kommentar på just detta moment...">
+              </label>
+
+              <div class="detail-deviation">
+                <label class="fault-toggle">
+                  <input type="checkbox" name="create_fault_{{ item.id }}" value="1">
+                  Skapa felanmälan / avvikelse
+                </label>
+                <select name="fault_assignee_{{ item.id }}">
+                  <option value="">Ej tilldelad</option>
+                  {% for u in techs %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <div class="detail-savebar">
+        <div>
+          <strong>Arbetsordern sparas gemensamt</strong>
+          <span class="muted">Du behöver inte lämna den här vyn för att bocka av momenten.</span>
+        </div>
+        <div class="save-actions">
+          <button class="btn btn-big" type="submit" name="action" value="save">Spara framsteg</button>
+          <button class="btn btn-success btn-big" type="submit" name="action" value="complete">Slutför {{ task.template.kind }}</button>
+        </div>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

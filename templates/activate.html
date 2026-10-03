@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Aktivera konto{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="panel auth-panel">
+    <h1>Aktivera konto</h1>
+    <p><strong>{{ user.name }}</strong><br>{{ user.email }}</p>
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Telefonnummer<input type="tel" name="phone" placeholder="070-..."></label>
+      <label>Nytt lösenord<input type="password" name="password" required></label>
+      <label>Upprepa lösenord<input type="password" name="password2" required></label>
+      <p class="muted">Minst 8 tecken, minst en bokstav och minst en siffra.</p>
+      <button class="btn btn-primary btn-big">Aktivera</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

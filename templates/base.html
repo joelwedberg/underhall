@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Driftunderhåll{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <a class="brand" href="{{ url_for('index') }}">Driftunderhåll · Central drift</a>
+    <span class="version">v0.3.0</span>
+    <div class="top-subtitle">
+      <span class="badge badge-green">Intern prototyp</span>
+      <span>Enkel felanmälan · FU · egenkontroll</span>
+    </div>
+  </div>
+
+  {% if current_user %}
+  <div class="userbox">
+    <div><strong>{{ current_user.name }}</strong><br><span class="muted">{{ current_user.role_label }}</span></div>
+    <form method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-small">Logga ut</button>
+    </form>
+  </div>
+  {% endif %}
+</header>
+
+{% if current_user %}
+<nav class="nav">
+  <a href="{{ url_for('work', tab='mine') }}">Mitt arbete</a>
+  <a href="{{ url_for('work', tab='reports') }}">Felanmälan</a>
+  <a href="{{ url_for('work', tab='fu') }}">FU</a>
+  <a href="{{ url_for('work', tab='eg') }}">Egenkontroll</a>
+  {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('admin_users') }}">Användare</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+<main class="{% block mainclass %}page{% endblock %}">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

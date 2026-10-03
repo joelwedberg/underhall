@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Central dashboard{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="panel auth-panel">
+    <span class="badge badge-green">Central dashboard</span>
+    <h1>Öppna dashboard</h1>
+    <p>Den här skärmen kräver ingen personlig login, men är låst med en gemensam enhetskod.</p>
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Dashboard-kod<input class="pin-input" inputmode="numeric" name="code" autocomplete="off" required></label>
+      <button class="btn btn-primary btn-big">Öppna dashboard</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

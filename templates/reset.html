@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Nytt lösenord{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="panel auth-panel">
+    <h1>Välj nytt lösenord</h1>
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Nytt lösenord<input type="password" name="password" required></label>
+      <label>Upprepa lösenord<input type="password" name="password2" required></label>
+      <p class="muted">Minst 8 tecken, minst en bokstav och minst en siffra.</p>
+      <button class="btn btn-primary">Spara nytt lösenord</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
