@@ -43,7 +43,15 @@ docker compose logs -f app
 - Personlig login: `http://SERVER:18090/login`
 - Mailpit: `http://SERVER:8025`
 
-Dashboard-koden är som standard `246810` och ändras i `.env`.
+**Dashboard-kod (JDPS-installationen):** en slumpmässigt skapad sexsiffrig kod som ligger lokalt i `/home/joel/underhall/.env` som `DASHBOARD_ACCESS_CODE`. Den historiska demonstrationskoden `246810` gäller inte den nya installationen.
+
+Visa aktuell kod via SSH på servern:
+
+```bash
+sudo grep '^DASHBOARD_ACCESS_CODE=' /home/joel/underhall/.env
+```
+
+Lägg inte den faktiska koden i Git: den skyddar fortfarande dashboarden, även i en demo. Förvara den lokalt eller på en skyddad plats.
 
 ## Aktivera demoanvändarna
 
