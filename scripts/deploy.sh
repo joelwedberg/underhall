@@ -22,6 +22,12 @@ g rev-parse HEAD > ".jdps/backups/$stamp/commit.txt"
 if dc ps --status running --services | grep -qx db; then
   dc exec -T db sh -ec 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > ".jdps/backups/$stamp/underhall.dump"
 fi
+# Kopiera även befintliga uppladdningar innan containrar ändras.
+volume="underhall_underhall_uploads"
+if docker volume inspect "$volume" >/dev/null 2>&1; then
+  mount="$(docker volume inspect -f '{{.Mountpoint}}' "$volume")"
+  tar -czf ".jdps/backups/$stamp/uploads.tar.gz" -C "$mount" .
+fi
 dc up -d --build --wait --wait-timeout 180
 [[ "$(docker inspect -f '{{.State.Health.Status}}' underhall-app-1)" == healthy ]] || { echo "App ej healthy"; exit 1; }
 echo "DEPLOY OK: underhall healthy, commit $(g rev-parse --short HEAD)"
