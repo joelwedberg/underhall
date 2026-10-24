@@ -20,3 +20,7 @@ Kör `sudo bash scripts/deploy.sh` i projektkatalogen. Skriptet kontrollerar ren
 4. Kontrollera att databasen, uppladdningarna och appversionen hör ihop. Testa återställningen på LAB innan verklig incident.
 
 **Återställning är inte verifierad.** Lokala kopior är inte oberoende offsite-backup. Databasmigrationer från v0.1 och produktion med extern SMTP/HTTPS hanteras separat.
+
+## Första driftsättning 2026-10-24
+
+Användaren körde JDPS-deploy på kommunservern och fick `DEPLOY OK: underhall healthy, commit 13de02f`. De nya `underhall-db-1`, `underhall-mailpit-1` och `underhall-app-1` rapporterades samtliga `Healthy`. Detta verifierar första containerstarten och healthchecks, inte fullständig funktionsprovning, larmleverans eller genomfört restore-test. Gamla prototypvolymer är avsedda att ligga kvar separat.
