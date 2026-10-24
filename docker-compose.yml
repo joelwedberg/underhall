@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-underhall}
       POSTGRES_USER: ${POSTGRES_USER:-underhall}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD saknas}
     volumes:
       - underhall_pg:/var/lib/postgresql/data
     healthcheck:
@@ -22,6 +22,12 @@ services:
 
   app:
     build: .
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:8000/report', timeout=5).status == 200"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 35s
     restart: unless-stopped
     depends_on:
       db:
@@ -29,10 +35,10 @@ services:
       mailpit:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-underhall}:${POSTGRES_PASSWORD:-change-me-local}@db:5432/${POSTGRES_DB:-underhall}
-      APP_SECRET: ${APP_SECRET:-replace-this-with-a-long-random-string}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-underhall}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD saknas}@db:5432/${POSTGRES_DB:-underhall}
+      APP_SECRET: ${APP_SECRET:?APP_SECRET saknas}
       BASE_URL: ${BASE_URL:-http://localhost:18090}
-      DASHBOARD_ACCESS_CODE: ${DASHBOARD_ACCESS_CODE:-246810}
+      DASHBOARD_ACCESS_CODE: ${DASHBOARD_ACCESS_CODE:?DASHBOARD_ACCESS_CODE saknas}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
